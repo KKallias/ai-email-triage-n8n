@@ -1,0 +1,366 @@
+{
+  "name": "AI Email Triage & Response Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -192,
+        -160
+      ],
+      "id": "3f43e43d-dc9c-4d48-b9f1-8232b1f2dd51",
+      "name": "Receive Email"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyse the incoming customer email.\n\nExtract these fields:\n\nEmail: sender email address\nSubject: email subject\nIssue: short summary of the customer's issue\nCategory: choose one of Support, Billing, Refund, Sales, General\nSentiment: choose one of Positive, Neutral, Negative\nDate: date the email was received\nReply Needed: choose Yes when the sender asks a question, requests help, reports a problem, requests information, or expects an action. Choose No when the email is only a thank-you, acknowledgement, confirmation with no question, spam, or does not require further action.\n\nUse only information from the email.\nDo not invent missing information.\n\nEmail to analyse:\n\nFrom: {{ $json.From }}\nSubject: {{ $json.Subject }}\nMessage: {{ $json.snippet }}\nDate: {{ $json.internalDate }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You analyse customer emails and return structured information.\n\nUse only the information provided in the email.\nDo not invent information.\nKeep the Issue summary short and clear."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        64,
+        -160
+      ],
+      "id": "60f4b6ad-2e4f-4be8-a0de-ea82ba53cd8b",
+      "name": "Analyse Email"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.6-luna",
+          "mode": "list",
+          "cachedResultName": "gpt-5.6-luna"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -96,
+        48
+      ],
+      "id": "26b52327-9257-4958-8129-91d1e222f961",
+      "name": "Email Analysis"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $json.output.Email }}",
+            "Issue": "={{ $json.output.Issue }}",
+            "Subject": "={{ $json.output.Subject }}",
+            "Category": "={{ $json.output.Category }}",
+            "Reply Needed": "={{ $json.output['Reply Needed'] }}",
+            "Date": "={{ $json.output.Date }}",
+            "Sentiment": "={{ $json.output.Sentiment }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Issue",
+              "displayName": "Issue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sentiment",
+              "displayName": "Sentiment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reply Needed",
+              "displayName": "Reply Needed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        -160
+      ],
+      "id": "79e15327-aaa6-4937-89e4-3f1d7b388562",
+      "name": "Log Email"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a short and professional customer support reply based on the email information below.\nCustomer email: {{ $json.Email }}\nSubject: {{ $json.Subject }}\nIssue: {{ $json.Issue }}\nCategory: {{ $json.Category }}\nSentiment: {{ $json.Sentiment }}\nRespond clearly to the customer's issue.\nDo not invent information or promise something that is not provided.\nIf the issue requires investigation, acknowledge the request and explain that it will be reviewed.\nReturn only the email reply.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        928,
+        -176
+      ],
+      "id": "8f7f55cc-c488-4f0c-a40d-e25a47879beb",
+      "name": "Draft Reply"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8c4652a9-539f-498a-a350-054a9f962d35",
+              "leftValue": "={{ $json['Reply Needed'] }}",
+              "rightValue": "Yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        -160
+      ],
+      "id": "1de16d89-58b2-43eb-9594-b6ac68573348",
+      "name": "Reply Needed?"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.6-luna",
+          "mode": "list",
+          "cachedResultName": "gpt-5.6-luna"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        912,
+        48
+      ],
+      "id": "e19295b3-0787-46f6-bc97-936f247c5340",
+      "name": "OpenAI · Reply Model"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"Email\": \"john@example.com\",\n  \"Subject\": \"Refund still not received\",\n  \"Issue\": \"Customer has not received a requested refund after two weeks.\",\n  \"Category\": \"Refund\",\n  \"Sentiment\": \"Negative\",\n  \"Date\": \"2026-09-05\",\n  \"Reply Needed\": \"Yes\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        320,
+        64
+      ],
+      "id": "0630a6d5-fd12-4e1f-99fb-b257fd84c5e7",
+      "name": "Email Output Parser"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Receive Email').item.json.From }}",
+        "subject": "={{ $('Receive Email').item.json.Subject }}",
+        "emailType": "text",
+        "message": "={{ $json.output }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1296,
+        -176
+      ],
+      "id": "52b42536-a73b-45a8-a9b1-032872df6d23",
+      "name": "Send a message"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Receive Email": {
+      "main": [
+        [
+          {
+            "node": "Analyse Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyse Email": {
+      "main": [
+        [
+          {
+            "node": "Log Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Analysis": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analyse Email",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Email": {
+      "main": [
+        [
+          {
+            "node": "Reply Needed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Reply": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply Needed?": {
+      "main": [
+        [
+          {
+            "node": "Draft Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI · Reply Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Draft Reply",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Analyse Email",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "nodeGroups": [],
+  "tags": []
+}
