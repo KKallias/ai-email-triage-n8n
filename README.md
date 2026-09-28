@@ -132,7 +132,26 @@ Generate a reply
 Send the response through Gmail
 ```
 
+## Exported Workflow
+
+[Download the real workflow](workflow/ai_email_triage_response.json).
+
+This export preserves all nine original nodes, their versions, prompts, positions and connections. The final Gmail recipient mapping was corrected from the incoming To field to the incoming From field. The message body still uses the generated Draft Reply output.
+
+Credential references and names, spreadsheet identifiers and URLs, the webhook identifier, workflow and version identifiers, and instance metadata were removed. Local node identifiers remain to preserve the workflow structure. The export is inactive and contains no pinned email data.
+
 ## Setup
+
+Import `workflow/ai_email_triage_response.json` into a compatible n8n installation.
+
+Assign Gmail credentials to Receive Email and Send a message, OpenAI credentials to both model nodes, and Google Sheets credentials to Log Email.
+
+Replace `YOUR_GOOGLE_SPREADSHEET_ID` with your spreadsheet ID and select your worksheet. The example worksheet name is `Sheet1`. Create these column headers exactly: Email, Subject, Issue, Category, Sentiment, Date, Reply Needed.
+
+The original model selections are preserved. Confirm that the selected model is available through your OpenAI API credentials, or choose an available model in both model nodes.
+
+Keep the workflow inactive until you complete a controlled test. Confirm the trigger supplies From, Subject, snippet and internalDate, and inspect the final recipient preview before sending.
+
 
 To reproduce this project, you need an n8n environment and credentials for Gmail, Google Sheets, and OpenAI.
 
@@ -156,9 +175,11 @@ Run the workflow with a test email and confirm each node completes successfully.
 
 ## Testing
 
-The workflow has been tested end to end with sample emails.
+Earlier development included sample email executions. The published export has passed static JSON and connection checks, including preservation of all nine nodes and removal of the private identifiers in the source export. Its recipient mapping was corrected during publication.
 
-Testing confirmed that the workflow can receive an email, extract structured fields, log the information, route a Yes decision through the reply path, generate a response, and deliver the email through Gmail.
+The sanitized version has not been imported or executed against live accounts during this review. A successful live run is still required after configuring credentials, spreadsheet access and model availability.
+
+Test a message that requires a reply and an acknowledgement that does not. Confirm the sheet receives the expected fields, the Yes branch reaches Draft Reply, the No branch stops, and the final Gmail recipient is the original sender. The reply body must be the generated output, not the incoming snippet.
 
 ## Security
 
@@ -177,6 +198,14 @@ The Reply Needed decision depends on the AI analysis.
 Google Sheets is used as a simple logging layer.
 
 The workflow does not include advanced approval logic, monitoring, or enterprise error handling.
+
+Analysis uses the email snippet, so longer messages and attachments may not be fully represented. The Date field depends on internalDate being present and on model interpretation. Inspect its value during setup.
+
+The example output schema defines strings but does not enforce the listed category values or Yes and No as an enum. The condition requires exactly Yes.
+
+The final Gmail node sends a new message using the original subject. It does not explicitly use the Gmail Reply operation or an original message ID. It targets From and does not implement separate Reply To header handling. See the [n8n Gmail documentation](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.gmail/message-operations/).
+
+The export has no explicit sender filtering, duplicate prevention or automated response loop protection. Use controlled test messages before enabling automatic processing.
 
 ## Skills Demonstrated
 
@@ -198,9 +227,7 @@ Workflow testing and debugging
 
 ## Project Status
 
-Working portfolio project.
-
-The complete workflow has been executed successfully from Gmail input through AI analysis, logging, routing, reply generation, and Gmail response.
+Portfolio workflow with a sanitized real export and a corrected recipient mapping. Static validation is complete. Live validation of this published version remains a setup step.
 
 ## Author
 
