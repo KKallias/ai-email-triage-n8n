@@ -6,6 +6,8 @@ An n8n automation project that receives incoming Gmail messages, uses OpenAI to 
 
 This project demonstrates a practical email support automation workflow built with n8n and OpenAI.
 
+![Successful n8n email triage workflow execution](assets/workflow_success.png)
+
 The goal is simple: reduce manual email triage while keeping the workflow easy to understand, test, and maintain.
 
 The workflow processes each incoming email through a clear sequence of steps:
